@@ -1,0 +1,161 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<script src="../lil-uri/uri.min.js"></script>
+
+<dom-module id="oauth-authorizator">
+    <template>
+        <iron-ajax id="exchangeAjax"
+                   content-type="application/x-www-form-urlencoded"
+                   handle-as="json"
+                   headers="[[headers]]"
+                   method="post"
+                   url="[[tokenExchangeUrl]]">
+        </iron-ajax>
+    </template>
+</dom-module>
+
+<script>
+    /**
+     * `oauth-authorizator`
+     *
+     * A Polymer 2.0 Element that performs the OAuth2 authorization code flow.
+     *
+     * @customElement
+     * @polymer
+     */
+    class OauthAuthorizator extends Polymer.Element {
+        static get is() {
+            return 'oauth-authorizator';
+        }
+
+        static get properties() {
+            return {
+                /**
+                 * The authorization endpoint.
+                 *
+                 * E.g. https://accounts.spotify.com/authorize
+                 *
+                 * @type String
+                 */
+                authorizationUri: {
+                    type: String
+                },
+
+                /**
+                 * The client ID.
+                 *
+                 * @type String
+                 */
+                clientId: {
+                    type: String
+                },
+
+                /**
+                 * Custom headers to send to the token exchange service.
+                 *
+                 * WARNING: DO NOT set a `Content-Type` header here, as it will mess
+                 * with the POST data.
+                 *
+                 * @type Object
+                 */
+                headers: {
+                    type: Object
+                },
+
+                /**
+                 * The URI to redirect to when the authorization has completed.
+                 *
+                 * @type String
+                 */
+                redirectUri: {
+                    type: String
+                },
+
+                /**
+                 * The authorization scopes to request.
+                 *
+                 * @type String[]
+                 */
+                scopes: {
+                    type: Array
+                },
+
+                /**
+                 * The URI exchange the authorization code into a full access token through.
+                 *
+                 * @type String
+                 */
+                tokenExchangeUrl: {
+                    type: String
+                }
+            };
+        }
+
+        /**
+         * Performs the OAuth authorization and yields back the
+         * authorization data.
+         */
+        authenticate() {
+            if (!this.authorizationUri) {
+                throw new Error("Authentication URL is null or empty!");
+            }
+            if (!this.redirectUri) {
+                throw new Error("Redirect URL is null or empty!");
+            }
+            if (!this.tokenExchangeUrl) {
+                throw new Error("Token exchange URL is null or empty!");
+            }
+
+            const authUrl = lil.uri(this.authorizationUri);
+            const state = (Math.random().toString(36) + '00000000000000000').slice(2, 9);
+
+            return new Promise((res, rej) => {
+                const u = lil.uri(this.authorizationUri)
+                    .query({
+                        client_id: this.clientId,
+                        redirect_uri: this.redirectUri,
+                        response_type: 'code',
+                        scope: (this.scopes || []).join(' '),
+                        state: state
+                    })
+                    .build();
+
+                const w = window.open(u, null, 'height=650,width=540');
+                const i = setInterval(() => {
+                    if (w.closed) {
+                        clearInterval(i);
+                        return rej(new Error("Authorization window has been closed."));
+                    }
+
+                    const loc = lil.uri(w.location.href);
+                    if (loc.protocol() !== authUrl.protocol() ||
+                        loc.host() !== authUrl.host() ||
+                        loc.path() !== authUrl.path()) {
+                        return;
+                    }
+
+                    clearInterval(i);
+                    w.close();
+                    const { code, error, s } = loc.query();
+
+                    if (s !== state) {
+                        return rej(new Error("State value didn't match."));
+                    }
+                    if (error) {
+                        return rej(new Error(error));
+                    }
+
+                    res(code);
+                }, 100);
+            })
+                .then(code => {
+                    this.$.exchangeAjax.body = 'code=&' + encodeURIComponent(code);
+                    return this.$.exchangeAjax.generateRequest().completes;
+                })
+                .then(xhr => xhr.response);
+        }
+    }
+
+    window.customElements.define(OauthAuthorizator.is, OauthAuthorizator);
+</script>
