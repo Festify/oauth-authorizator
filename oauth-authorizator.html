@@ -140,7 +140,12 @@
                     })
                     .build();
 
-                const w = window.open(u, null, 'height=650,width=540');
+                let w;
+                try {
+                    w = window.open(u, null, 'height=650,width=540');
+                } catch (e) {
+                    rej(e);
+                }
                 const i = setInterval(() => {
                     if (w.closed) {
                         clearInterval(i);
