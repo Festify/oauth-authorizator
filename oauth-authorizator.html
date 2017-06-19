@@ -132,11 +132,11 @@
             return new Promise((res, rej) => {
                 const u = lil.uri(this.authorizationUri)
                     .query({
-                        client_id: this.clientId,
-                        redirect_uri: this.redirectUri,
+                        client_id: encodeURIComponent(this.clientId),
+                        redirect_uri: encodeURIComponent(this.redirectUri),
                         response_type: 'code',
-                        scope: (this.scopes || []).join(' '),
-                        state: state
+                        scope: encodeURIComponent((this.scopes || []).join(' ')),
+                        state: encodeURIComponent(state)
                     })
                     .build();
 
