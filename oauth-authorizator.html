@@ -150,6 +150,10 @@
                         }));
                     }
 
+                    if (!w.location.href) {
+                        return;
+                    }
+
                     const loc = lil.uri(w.location.href);
                     if (loc.protocol() !== authUrl.protocol() ||
                         loc.host() !== authUrl.host() ||
