@@ -1,7 +1,7 @@
 <link rel="import" href="../polymer/polymer-element.html">
 <link rel="import" href="../iron-ajax/iron-ajax.html">
 
-<script src="../lil-uri/uri.min.js"></script>
+<script src="../url/url.js"></script>
 
 <dom-module id="oauth-authorizator">
     <template>
@@ -126,26 +126,18 @@
                 });
             }
 
-            const authUrl = lil.uri(this.authorizationUri);
+            const authUrl = new URL(this.authorizationUri);
             const state = (Math.random().toString(36) + '00000000000000000').slice(2, 9);
 
             return new Promise((res, rej) => {
-                const u = lil.uri(this.authorizationUri)
-                    .query({
-                        client_id: encodeURIComponent(this.clientId),
-                        redirect_uri: encodeURIComponent(this.redirectUri),
-                        response_type: 'code',
-                        scope: encodeURIComponent((this.scopes || []).join(' ')),
-                        state: encodeURIComponent(state)
-                    })
-                    .build();
+                const u = new URL(this.authorizationUri);
+                u.searchParams.set('client_id', this.clientId);
+                u.searchParams.set('redirect_uri', this.redirectUri);
+                u.searchParams.set('response_type', 'code');
+                u.searchParams.set('scope', (this.scopes || []).join(' '));
+                u.searchParams.set('state', state);
 
-                let w;
-                try {
-                    w = window.open(u, null, 'height=650,width=540');
-                } catch (e) {
-                    rej(e);
-                }
+                const w = window.open(u.toString());
                 const i = setInterval(() => {
                     if (w.closed) {
                         clearInterval(i);
@@ -159,16 +151,18 @@
                         return;
                     }
 
-                    const loc = lil.uri(w.location.href);
-                    if (loc.protocol() !== authUrl.protocol() ||
-                        loc.host() !== authUrl.host() ||
-                        loc.path() !== authUrl.path()) {
+                    const loc = new URL(w.location.href);
+                    if (loc.protocol !== authUrl.protocol ||
+                        loc.host !== authUrl.host ||
+                        loc.pathname !== authUrl.pathname) {
                         return;
                     }
 
                     clearInterval(i);
                     w.close();
-                    const { code, error, s } = loc.query();
+                    const code = loc.searchParams.get('code');
+                    const error = loc.searchParams.get('error');
+                    const s = loc.searchParams.get('state');
 
                     if (s !== state) {
                         return rej(new Error({

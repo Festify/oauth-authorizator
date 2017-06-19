@@ -4,8 +4,8 @@
   "main": "oauth-authorizator.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
-    "lil-uri": "^0.2.1",
-    "iron-ajax": "^2.0.2"
+    "iron-ajax": "^2.0.2",
+    "url": "webcomponents/URL#^0.5.7"
   },
   "devDependencies": {
     "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^2.0.0",
