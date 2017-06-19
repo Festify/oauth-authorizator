@@ -27,11 +27,11 @@
     class OauthAuthorizator extends Polymer.Element {
         static get errors() {
             return {
-                AUTH_WINDOW_CLOSED: -1,
-                HTTP_ERROR: -2,
-                INVALID_PARAMETER: -3,
-                OAUTH_ERROR: -4,
-                STATE_MISMATCH: -5
+                AUTH_WINDOW_CLOSED: 'auth_window_closed',
+                HTTP_ERROR: 'http',
+                INVALID_PARAMETER: 'parameter',
+                OAUTH_ERROR: 'oauth_error',
+                STATE_MISMATCH: 'state_mismatch'
             };
         }
 
@@ -108,25 +108,26 @@
          */
         authenticate() {
             if (!this.authorizationUri) {
-                throw new Error({
-                    code: OauthAuthorizator.errors.INVALID_PARAMETER,
-                    msg: "Authentication URL is null or empty!"
-                });
+                throw new Error(
+                    "Authentication URL is null or empty!",
+                    OauthAuthorizator.errors.INVALID_PARAMETER
+                );
             }
             if (!this.redirectUri) {
-                throw new Error({
-                    code: OauthAuthorizator.errors.INVALID_PARAMETER,
-                    msg: "Redirect URL is null or empty!"
-                });
+                throw new Error(
+                    "Redirect URL is null or empty!",
+                    OauthAuthorizator.errors.INVALID_PARAMETER
+                );
             }
             if (!this.tokenExchangeUrl) {
-                throw new Error({
-                    code: OauthAuthorizator.errors.INVALID_PARAMETER,
-                    msg: "Token exchange URL is null or empty!"
-                });
+                throw new Error(
+                    "Token exchange URL is null or empty!",
+                    OauthAuthorizator.errors.INVALID_PARAMETER
+                );
             }
 
             const authUrl = new URL(this.authorizationUri);
+            // Generate random ASCII string
             const state = (Math.random().toString(36) + '00000000000000000').slice(2, 9);
 
             return new Promise((res, rej) => {
@@ -141,10 +142,10 @@
                 const i = setInterval(() => {
                     if (w.closed) {
                         clearInterval(i);
-                        return rej(new Error({
-                            code: OauthAuthorizator.errors.AUTH_WINDOW_CLOSED,
-                            msg: "Authorization window has been closed."
-                        }));
+                        return rej(new Error(
+                            "Authorization window has been closed.",
+                            OauthAuthorizator.errors.AUTH_WINDOW_CLOSED
+                        ));
                     }
 
                     if (!w.location.href) {
@@ -165,16 +166,16 @@
                     const s = loc.searchParams.get('state');
 
                     if (s !== state) {
-                        return rej(new Error({
-                            code: OauthAuthorizator.errors.STATE_MISMATCH,
-                            msg: "State value didn't match."
-                        }));
+                        return rej(new Error(
+                            "State value didn't match.",
+                            OauthAuthorizator.errors.STATE_MISMATCH
+                        ));
                     }
                     if (error) {
-                        return rej(new Error({
-                            code: OauthAuthorizator.errors.OAUTH_ERROR,
-                            msg: error
-                        }));
+                        return rej(new Error(
+                            error,
+                            OauthAuthorizator.errors.OAUTH_ERROR
+                        ));
                     }
 
                     res(code);
@@ -185,10 +186,7 @@
                     return this.$.exchangeAjax.generateRequest().completes;
                 })
                 .then(xhr => xhr.response)
-                .catch(err => Promise.reject({
-                    code: OauthAuthorizator.errors.HTTP_ERROR,
-                    msg: err
-                }));
+                .catch(err => Promise.reject(new Error(err, OauthAuthorizator.errors.HTTP_ERROR)));
         }
     }
 
