@@ -30,7 +30,8 @@
                 HTTP_ERROR: 'http',
                 INVALID_PARAMETER: 'parameter',
                 OAUTH_ERROR: 'oauth_error',
-                STATE_MISMATCH: 'state_mismatch'
+                STATE_MISMATCH: 'state_mismatch',
+                UNKOWN: 'unknown'
             };
         }
 
@@ -138,6 +139,13 @@
                 u.searchParams.set('state', state);
 
                 const w = window.open(u.toString());
+                if (!w) {
+                    return rej(new Error(
+                        "Window handle was null.",
+                        OauthAuthorizator.errors.UNKNOWN
+                    ));
+                }
+
                 const i = setInterval(() => {
                     if (w.closed) {
                         clearInterval(i);
@@ -147,11 +155,11 @@
                         ));
                     }
 
-                    if (!w.location.href) {
+                    if (!w.location) {
                         return;
                     }
 
-                    const loc = new URL(w.location.href);
+                    const loc = new URL(w.location);
                     if (loc.protocol !== authUrl.protocol ||
                         loc.host !== authUrl.host ||
                         loc.pathname !== authUrl.pathname) {
