@@ -63,8 +63,8 @@
                 /**
                  * Custom headers to send to the token exchange service.
                  *
-                 * WARNING: DO NOT set a `Content-Type` header here, as it will mess
-                 * with the POST data.
+                 * Setting a `Content-Type` header here will override how the request
+                 * body is encoded during the request to the token exchange service.
                  *
                  * @type Object
                  */
@@ -181,7 +181,7 @@
                 }, 100);
             })
                 .then(code => {
-                    this.$.exchangeAjax.body = 'code=&' + encodeURIComponent(code);
+                    this.$.exchangeAjax.body = { code: encodeURIComponent(code) };
                     return this.$.exchangeAjax.generateRequest().completes;
                 })
                 .then(xhr => xhr.response)
