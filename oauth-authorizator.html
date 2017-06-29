@@ -126,19 +126,18 @@
                 );
             }
 
-            const authUrl = new URL(this.authorizationUri);
             // Generate random ASCII string
             const state = (Math.random().toString(36) + '00000000000000000').slice(2, 9);
 
             return new Promise((res, rej) => {
-                const u = new URL(this.authorizationUri);
-                u.searchParams.set('client_id', this.clientId);
-                u.searchParams.set('redirect_uri', this.redirectUri);
-                u.searchParams.set('response_type', 'code');
-                u.searchParams.set('scope', (this.scopes || []).join(' '));
-                u.searchParams.set('state', state);
+                const authUrl = new URL(this.authorizationUri);
+                authUrl.searchParams.set('client_id', this.clientId);
+                authUrl.searchParams.set('redirect_uri', this.redirectUri);
+                authUrl.searchParams.set('response_type', 'code');
+                authUrl.searchParams.set('scope', (this.scopes || []).join(' '));
+                authUrl.searchParams.set('state', state);
 
-                const w = window.open(u.toString());
+                const w = window.open(authUrl.toString());
                 if (!w) {
                     return rej(new Error(
                         "Window handle was null.",
@@ -146,6 +145,7 @@
                     ));
                 }
 
+                const redirUrl = new URL(this.redirectUri);
                 const i = setInterval(() => {
                     if (w.closed) {
                         clearInterval(i);
@@ -164,9 +164,9 @@
                     }
 
                     const loc = new URL(w.location);
-                    if (loc.protocol !== authUrl.protocol ||
-                        loc.host !== authUrl.host ||
-                        loc.pathname !== authUrl.pathname) {
+                    if (loc.protocol !== redirUrl.protocol ||
+                        loc.host !== redirUrl.host ||
+                        loc.pathname !== redirUrl.pathname) {
                         return;
                     }
 
