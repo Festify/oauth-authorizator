@@ -156,7 +156,11 @@
                     }
 
                     if (!w.location) {
-                        return;
+                        clearInterval(i);
+                        return rej(new Error(
+                            "Window location was null.",
+                            OauthAuthorizator.errors.UNKNOWN
+                        ));
                     }
 
                     const loc = new URL(w.location);
