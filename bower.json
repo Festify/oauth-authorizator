@@ -1,6 +1,6 @@
 {
   "name": "oauth-authorizator",
-  "description": "A Polymer 2.0 Element that perfs the OAuth2 authorization code flow.orms OAuth2 authorization code flow.",
+  "description": "A Polymer 2.0 Element that performs the OAuth2 authorization code flow",
   "main": "oauth-authorizator.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
