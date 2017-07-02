@@ -11,6 +11,13 @@
                    method="post"
                    url="[[tokenExchangeUrl]]">
         </iron-ajax>
+        <iron-ajax id="refreshAjax"
+                   content-type="application/x-www-form-urlencoded"
+                   handle-as="json"
+                   headers="[[headers]]"
+                   method="post"
+                   url="[[tokenRefreshUrl]]">
+        </iron-ajax>
     </template>
 </dom-module>
 
@@ -42,13 +49,25 @@
         static get properties() {
             return {
                 /**
+                 * A valid access token.
+                 *
+                 * This will automatically be refreshed before it times out.
+                 *
+                 * @type String
+                 */
+                accessToken: {
+                    type: String,
+                    notify: true,
+                },
+
+                /**
                  * The authorization endpoint.
                  *
                  * E.g. https://accounts.spotify.com/authorize
                  *
                  * @type String
                  */
-                authorizationUri: {
+                authorizationUrl: {
                     type: String
                 },
 
@@ -62,7 +81,7 @@
                 },
 
                 /**
-                 * Custom headers to send to the token exchange service.
+                 * Custom headers to send to the token services.
                  *
                  * Setting a `Content-Type` header here will override how the request
                  * body is encoded during the request to the token exchange service.
@@ -74,11 +93,33 @@
                 },
 
                 /**
+                 * Indicates whether the authentication process currently is in process.
+                 *
+                 * @type Boolean
+                 */
+                inProgress: {
+                    type: Boolean,
+                    notify: true
+                },
+                
+                /**
+                 * The key of the local storage item to save the refresh token to.
+                 * 
+                 * Defaults to `oauth-authorizator:refreshToken`.
+                 * 
+                 * @type String
+                 */ 
+                localStorageKey: {
+                    type: String,
+                    value: () => 'oauth-authorizator:refreshToken'
+                },
+
+                /**
                  * The URI to redirect to when the authorization has completed.
                  *
                  * @type String
                  */
-                redirectUri: {
+                redirectUrl: {
                     type: String
                 },
 
@@ -92,30 +133,74 @@
                 },
 
                 /**
-                 * The URI exchange the authorization code into a full access token through.
+                 * The URI to exchange the authorization code into a full access token through.
                  *
                  * @type String
                  */
                 tokenExchangeUrl: {
                     type: String
+                },
+
+                /**
+                 * The URL to refresh an expired access token through.
+                 *
+                 * If this is null when `login` is called, the obtained
+                 * access token will not automatically be refreshed.
+                 *
+                 * @type String
+                 */
+                tokenRefreshUrl: {
+                    type: String
+                },
+
+                /**
+                 * The interval descriptor for the token refresh task.
+                 *
+                 * @type Number
+                 */
+                _refreshInterval: {
+                    type: Number
                 }
             };
         }
 
         /**
-         * Performs the OAuth authorization and yields back the
-         * authorization data.
+         * Forgets the currently logged-in user and stops the automatic access
+         * token refresh process.
          */
-        authenticate() {
-            if (!this.authorizationUri) {
+        forget() {
+            localStorage.removeItem(this.localStorageKey);
+            clearInterval(this._refreshInterval);
+
+            this.setProperties({
+                accessToken: null,
+                _refreshInterval: null
+            });
+        }
+
+        /**
+         * Performs the OAuth authorization process.
+         *
+         * First, this attempts to relogin the current user. If that doesn't
+         * work, this method triggers the full OAuth authorization. When that is
+         * done, it starts the automatic access token refresh process.
+         */
+        login() {
+            if (!this.authorizationUrl) {
                 throw new Error(
                     "Authentication URL is null or empty!",
                     OauthAuthorizator.errors.INVALID_PARAMETER
                 );
             }
-            if (!this.redirectUri) {
+            if (!this.redirectUrl) {
                 throw new Error(
                     "Redirect URL is null or empty!",
+                    OauthAuthorizator.errors.INVALID_PARAMETER
+                );
+            }
+            if (!this.tokenRefreshUrl) {
+                throw new Error(
+                    "Token refresh URL is null or empty!",
                     OauthAuthorizator.errors.INVALID_PARAMETER
                 );
             }
@@ -126,13 +211,23 @@
                 );
             }
 
+            this.inProgress = true;
+            return this._refresh()
+                .then(resp => resp ? resp : this._authenticate())
+                .then(res => {
+                    this.inProgress = false;
+                    return res;
+                });
+        }
+
+        _authenticate() {
             // Generate random ASCII string
             const state = (Math.random().toString(36) + '00000000000000000').slice(2, 9);
 
             return new Promise((res, rej) => {
-                const authUrl = new URL(this.authorizationUri);
+                const authUrl = new URL(this.authorizationUrl);
                 authUrl.searchParams.set('client_id', this.clientId);
-                authUrl.searchParams.set('redirect_uri', this.redirectUri);
+                authUrl.searchParams.set('redirect_uri', this.redirectUrl);
                 authUrl.searchParams.set('response_type', 'code');
                 authUrl.searchParams.set('scope', (this.scopes || []).join(' '));
                 authUrl.searchParams.set('state', state);
@@ -145,7 +240,7 @@
                     ));
                 }
 
-                const redirUrl = new URL(this.redirectUri);
+                const redirUrl = new URL(this.redirectUrl);
                 const i = setInterval(() => {
                     if (w.closed) {
                         clearInterval(i);
@@ -194,10 +289,66 @@
             })
                 .then(code => {
                     this.$.exchangeAjax.body = { code: encodeURIComponent(code) };
-                    return this.$.exchangeAjax.generateRequest().completes;
+                    return this.$.exchangeAjax.generateRequest().completes
+                        .catch(err => Promise.reject(new Error(err, OauthAuthorizator.errors.HTTP_ERROR)));
                 })
-                .then(xhr => xhr.response)
-                .catch(err => Promise.reject(new Error(err, OauthAuthorizator.errors.HTTP_ERROR)));
+                .then(({ response }) => {
+                    if (response.refresh_token && response.expires_in) {
+                        localStorage.setItem(this.localStorageKey, response.refresh_token);
+
+                        clearInterval(this._refreshInterval);
+                        this._refreshInterval = setInterval(
+                            () => this._refresh(),
+                            response.expires_in * 950
+                        );
+                    }
+
+                    this.accessToken = response.access_token;
+                    return response;
+                });
+        }
+
+        _refresh() {
+            const rt = localStorage.getItem(this.localStorageKey);
+            if (!rt) {
+                clearInterval(this._refreshInterval);
+                return Promise.resolve();
+            }
+
+            return this._retry(() => {
+                this.$.refreshAjax.body = { refresh_token: rt };
+                return this.$.refreshAjax.generateRequest().completes
+                    .then(({ response }) => {
+                        if (response.expires_in) {
+                            clearInterval(this._refreshInterval);
+                            this._refreshInterval = setInterval(
+                                () => this._refresh(),
+                                response.expires_in * 950
+                            );
+                        }
+
+                        this.accessToken = response.access_token;
+                        return response;
+                    });
+            }, 5000, 10);
+        }
+
+        _retry(fn, delay, max) {
+            return new Promise((res, rej) => {
+                const attempt = () => {
+                    fn()
+                        .then(res)
+                        .catch(err => {
+                            if (max-- > 0) {
+                                setTimeout(attempt, delay);
+                            } else {
+                                rej(err);
+                            }
+                        });
+                };
+
+                attempt();
+            });
         }
     }
 
