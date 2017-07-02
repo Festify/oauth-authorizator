@@ -226,11 +226,15 @@
 
             return new Promise((res, rej) => {
                 const authUrl = new URL(this.authorizationUrl);
-                authUrl.searchParams.set('client_id', this.clientId);
-                authUrl.searchParams.set('redirect_uri', this.redirectUrl);
-                authUrl.searchParams.set('response_type', 'code');
-                authUrl.searchParams.set('scope', (this.scopes || []).join(' '));
-                authUrl.searchParams.set('state', state);
+
+                const params = new URLSearchParams(authUrl.search);
+                params.set('client_id', this.clientId);
+                params.set('redirect_uri', this.redirectUrl);
+                params.set('response_type', 'code');
+                params.set('scope', (this.scopes || []).join(' '));
+                params.set('state', state);
+
+                authUrl.search = params.toString();
 
                 const w = window.open(authUrl.toString());
                 if (!w) {
@@ -267,9 +271,11 @@
 
                     clearInterval(i);
                     w.close();
-                    const code = loc.searchParams.get('code');
-                    const error = loc.searchParams.get('error');
-                    const s = loc.searchParams.get('state');
+
+                    const params = new URLSearchParams(loc.search);
+                    const code = params.get('code');
+                    const error = params.get('error');
+                    const s = params.get('state');
 
                     if (s !== state) {
                         return rej(new Error(
