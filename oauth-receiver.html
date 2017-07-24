@@ -1,0 +1,37 @@
+<link rel="import" href="url-search-params-polyfill.html">
+
+<script>
+    /**
+     * `oauth-receiver`
+     *
+     * The second part of the OAuth-Element story, that receives the authentication
+     * data in the redirected window and sends them back to the window opener via
+     * `window.postMessage`.
+     *
+     * @customElement
+     */
+    class OAuthReceiver extends HTMLElement {
+        static get is() {
+            return 'oauth-receiver';
+        }
+
+        connectedCallback() {
+            super.connectedCallback();
+
+            if (!window.opener) {
+                console.error("Missing window.opener property!");
+                return;
+            }
+
+            const attrValue = this.getAttribute('target');
+            const query = new URLSearchParams(document.location.search);
+            window.opener.postMessage({
+                code: query.get('code'),
+                error: query.get('error'),
+                state: query.get('state')
+            }, this.target ? this.target : attrValue ? attrValue : '*');
+        }
+    }
+
+    customElements.define(OAuthReceiver.is, OAuthReceiver);
+</script>

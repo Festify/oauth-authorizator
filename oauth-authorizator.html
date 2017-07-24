@@ -39,7 +39,7 @@
                 INVALID_PARAMETER: 'parameter',
                 OAUTH_ERROR: 'oauth_error',
                 STATE_MISMATCH: 'state_mismatch',
-                UNKOWN: 'unknown'
+                UNKNOWN: 'unknown'
             };
         }
 
@@ -245,54 +245,58 @@
                     ));
                 }
 
-                const redirUrl = new URL(this.redirectUrl);
-                const i = setInterval(() => {
-                    if (w.closed) {
-                        clearInterval(i);
-                        return rej(new Error(
-                            "Authorization window has been closed.",
-                            OauthAuthorizator.errors.AUTH_WINDOW_CLOSED
-                        ));
-                    }
-
-                    if (!w.location) {
-                        clearInterval(i);
-                        return rej(new Error(
-                            "Window location was null.",
-                            OauthAuthorizator.errors.UNKNOWN
-                        ));
-                    }
-
-                    const loc = new URL(w.location);
-                    if (loc.protocol !== redirUrl.protocol ||
-                        loc.host !== redirUrl.host ||
-                        loc.pathname !== redirUrl.pathname) {
+                const interval = setInterval(() => {
+                    if (!w.closed) {
                         return;
                     }
 
-                    clearInterval(i);
+                    clearInterval(interval);
+                    window.removeEventListener('message', handleFunction);
+
+                    return rej(new Error(
+                        "Authorization window has been closed.",
+                        OauthAuthorizator.errors.AUTH_WINDOW_CLOSED
+                    ));
+                }, 100);
+
+                const handleFunction = (/** @type MessageEvent */ev) => {
+                    const loc = new URL(ev.origin);
+                    const redirUrl = new URL(this.redirectUrl);
+
+                    if (loc.protocol !== redirUrl.protocol ||
+                        loc.host !== redirUrl.host ||
+                        loc.pathname !== redirUrl.pathname) {
+                        console.warn(`Received message from invalid domain ${ev.origin}.`);
+                        return;
+                    }
+
+                    clearInterval(interval);
+                    window.removeEventListener('message', handleFunction);
                     w.close();
 
-                    const params = new URLSearchParams(loc.search);
-                    const code = params.get('code');
-                    const error = params.get('error');
-                    const s = params.get('state');
-
-                    if (s !== state) {
+                    if (!ev.data) {
+                        return rej(new Error(
+                            "Received no data with authorization message.",
+                            OauthAuthorizator.errors.UNKNOWN
+                        ));
+                    }
+                    if (ev.data.state !== state) {
                         return rej(new Error(
                             "State value didn't match.",
                             OauthAuthorizator.errors.STATE_MISMATCH
                         ));
                     }
-                    if (error) {
+                    if (ev.data.error) {
                         return rej(new Error(
-                            error,
+                            ev.data.error,
                             OauthAuthorizator.errors.OAUTH_ERROR
                         ));
                     }
 
-                    res(code);
-                }, 100);
+                    return res(ev.data.code);
+                };
+
+                window.addEventListener('message', handleFunction);
             })
                 .then(code => {
                     this.$.exchangeAjax.body = { code: encodeURIComponent(code) };
