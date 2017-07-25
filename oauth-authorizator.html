@@ -218,6 +218,10 @@
                 .then(res => {
                     this.inProgress = false;
                     return res;
+                })
+                .catch(err => {
+                    this.inProgress = false;
+                    return Promise.reject(err);
                 });
         }
 
