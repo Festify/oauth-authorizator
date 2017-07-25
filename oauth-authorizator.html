@@ -45,6 +45,9 @@
                 /**
                  * The authorization endpoint.
                  *
+                 * This is the site that will be opened in the popup window and this
+                 * is where the actual authentication with the 3rd party takes place.
+                 *
                  * E.g. https://accounts.spotify.com/authorize
                  *
                  * @type String
@@ -64,9 +67,6 @@
 
                 /**
                  * Custom headers to send to the token services.
-                 *
-                 * Setting a `Content-Type` header here will override how the request
-                 * body is encoded during the request to the token exchange service.
                  *
                  * @type Object
                  */
@@ -99,6 +99,8 @@
                 /**
                  * The URI to redirect to when the authorization has completed.
                  *
+                 * This is the site the `oauth-receiver` must be hosted on.
+                 *
                  * @type String
                  */
                 redirectUrl: {
@@ -126,8 +128,8 @@
                 /**
                  * The URL to refresh an expired access token through.
                  *
-                 * If this is null when `login` is called, the obtained
-                 * access token will not automatically be refreshed.
+                 * If this is null when `login` is called, the obtained access token
+                 * will not automatically be refreshed.
                  *
                  * @type String
                  */
