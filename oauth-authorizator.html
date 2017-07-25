@@ -108,7 +108,7 @@
                 /**
                  * The authorization scopes to request.
                  *
-                 * @type String[]
+                 * @type String|String[]
                  */
                 scopes: {
                     type: Array
@@ -217,7 +217,10 @@
                 params.set('client_id', this.clientId);
                 params.set('redirect_uri', this.redirectUrl);
                 params.set('response_type', 'code');
-                params.set('scope', (this.scopes || []).join(' '));
+                params.set(
+                    'scope',
+                    Array.isArray(this.scopes) ? this.scopes.join(' ') : this.scopes
+                );
                 params.set('state', state);
 
                 authUrl.search = params.toString();
