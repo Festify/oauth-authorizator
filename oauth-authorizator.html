@@ -180,12 +180,6 @@
                     OauthAuthorizator.errors.INVALID_PARAMETER
                 );
             }
-            if (!this.tokenRefreshUrl) {
-                throw new Error(
-                    "Token refresh URL is null or empty!",
-                    OauthAuthorizator.errors.INVALID_PARAMETER
-                );
-            }
             if (!this.tokenExchangeUrl) {
                 throw new Error(
                     "Token exchange URL is null or empty!",
@@ -335,7 +329,7 @@
          */
         _refresh() {
             const rt = localStorage.getItem(this.localStorageKey);
-            if (!rt) {
+            if (!rt || !this.tokenRefreshUrl) {
                 clearInterval(this._refreshInterval);
                 return Promise.resolve();
             }
