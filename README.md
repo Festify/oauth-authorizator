@@ -21,3 +21,6 @@ A Polymer 2.0 Element that performs the OAuth2 authorization code flow using a p
 <oauth-receiver target="Optional, the site you're hosting your website on. E.g. https://festify.us"></oauth-receiver>
 ```
 4. Call `oauth-authorizator.login()` at the appropriate time to start the authorization process. The access token will appear as observable property at `oauth-authorizator.accessToken` or will be available through the Promise's return value.
+
+## License
+MIT
