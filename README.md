@@ -22,5 +22,9 @@ A Polymer 2.0 Element that performs the OAuth2 authorization code flow using a p
 ```
 4. Call `oauth-authorizator.login()` at the appropriate time to start the authorization process. The access token will appear as observable property at `oauth-authorizator.accessToken` or will be available through the Promise's return value.
 
+## Manual Mode
+
+If you set the `manual`-attribute on `<oauth-receiver>`, the element will not attempt to parse the parameters on page load. Instead, you will need to call `<oauth-receiver>.receive()` in order to parse and send the OAuth get parameters. This could be useful if you want to show the user some content before redirecting back to the application.
+
 ## License
 MIT

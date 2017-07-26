@@ -18,18 +18,41 @@
         connectedCallback() {
             super.connectedCallback();
 
+            if (!this.hasAttribute('manual')) {
+                this.receive();
+            }
+        }
+
+        /**
+         * Attempts to read OAuth2 authentication parameters and sends them off
+         * to the window opener through `window.postMessage`.
+         *
+         * @returns {boolean} whether the parameters could be sent to the window opener.
+         */
+        receive() {
             if (!window.opener) {
-                console.error("Missing window.opener property!");
-                return;
+                console.log("Missing window.opener.");
+                return false;
             }
 
             const attrValue = this.getAttribute('target');
             const query = new URLSearchParams(document.location.search);
-            window.opener.postMessage({
-                code: query.get('code'),
-                error: query.get('error'),
-                state: query.get('state')
-            }, this.target ? this.target : attrValue ? attrValue : '*');
+
+            const code = query.get('code');
+            const error = query.get('error');
+            const state = query.get('state');
+
+            if (!code && !error) {
+                console.log("Missing OAuth2 GET parameters.");
+                return false;
+            }
+
+            window.opener.postMessage(
+                { code: code, error: error, state: state },
+                this.target ? this.target : attrValue ? attrValue : '*'
+            );
+
+            return true;
         }
     }
 
