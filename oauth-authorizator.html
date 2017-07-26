@@ -205,7 +205,7 @@
         /**
          * Performs the authentication.
          *
-         * @returns {Promise.<TResult>} A promise with the authentication data.
+         * @returns {Promise.<Object>} A promise with the authentication data.
          * @private
          */
         _authenticate() {
@@ -288,12 +288,12 @@
 
                 window.addEventListener('message', handleFunction);
             })
-                .then(code => this._retry(() => fetch(this.tokenExchangeUrl, {
+                .then(code => OauthAuthorizator._retry(() => fetch(this.tokenExchangeUrl, {
                     body: new URLSearchParams({ code: code }),
                     headers: this.headers,
                     method: 'post'
                 }), 5000, 10))
-                .then(this._ensureOk)
+                .then(OauthAuthorizator._ensureOk)
                 .then(response => response.json())
                 .then(response => {
                     if (response.refresh_token && response.expires_in) {
@@ -312,21 +312,6 @@
         }
 
         /**
-         * Ensures the given HTTP response's status code is ok.
-         *
-         * @param response Response the HTTP response
-         * @returns {Promise.<Response>} A promise that is either resolved or rejected depending on the status of the response.
-         */
-        _ensureOk(response) {
-            return response.ok ?
-                Promise.resolve(response) :
-                Promise.reject(new Error(
-                    "Received invalid status code " + response.status + ".",
-                    OauthAuthorizator.errors.HTTP
-                ));
-        }
-
-        /**
          * Attempts to refresh the current session without going through the full auth screen.
          *
          * @returns {Promise.<TResult>} A promise with the authentication data or null, if the user couldn't be authed.
@@ -339,12 +324,12 @@
                 return Promise.resolve();
             }
 
-            return this._retry(() => fetch(this.tokenRefreshUrl, {
+            return OauthAuthorizator._retry(() => fetch(this.tokenRefreshUrl, {
                 body: new URLSearchParams({ refresh_token: rt }),
                 headers: this.headers,
                 method: 'post'
             }), 5000, 10)
-                .then(this._ensureOk)
+                .then(OauthAuthorizator._ensureOk)
                 .then(response => response.json())
                 .then(response => {
                     if (response.expires_in) {
@@ -361,6 +346,21 @@
         }
 
         /**
+         * Ensures the given HTTP response's status code is ok.
+         *
+         * @param response Response the HTTP response
+         * @returns {Promise.<Response>} A promise that is either resolved or rejected depending on the status of the response.
+         */
+        static _ensureOk(response) {
+            return response.ok ?
+                Promise.resolve(response) :
+                Promise.reject(new Error(
+                    "Received invalid status code " + response.status + ".",
+                    OauthAuthorizator.errors.HTTP_ERROR
+                ));
+        }
+
+        /**
          * Executes the given function and retries it, if the Promise, the function
          * returned, didn't complete successfully.
          *
@@ -370,7 +370,7 @@
          * @returns {Promise} The promise with the eventual result.
          * @private
          */
-        _retry(fn, delay, max) {
+        static _retry(fn, delay, max) {
             return new Promise((res, rej) => {
                 const attempt = () => {
                     Promise.resolve(fn())
