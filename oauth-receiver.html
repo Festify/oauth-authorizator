@@ -16,8 +16,6 @@
         }
 
         connectedCallback() {
-            super.connectedCallback();
-
             if (!this.hasAttribute('manual')) {
                 this.receive();
             }
