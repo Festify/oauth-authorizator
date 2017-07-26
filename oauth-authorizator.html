@@ -355,7 +355,7 @@
             return response.ok ?
                 Promise.resolve(response) :
                 Promise.reject(new Error(
-                    "Received invalid status code " + response.status + ".",
+                    `Received invalid status code ${response.status}.`,
                     OauthAuthorizator.errors.HTTP_ERROR
                 ));
         }
