@@ -287,11 +287,15 @@
 
                 window.addEventListener('message', handleFunction);
             })
-                .then(code => OauthAuthorizator._retry(() => fetch(this.tokenExchangeUrl, {
-                    body: new URLSearchParams({ code: code }),
-                    headers: this.headers,
-                    method: 'post'
-                }), 5000, 10))
+                .then(code => {
+                    const body = new URLSearchParams();
+                    body.append('code', code);
+                    return OauthAuthorizator._retry(() => fetch(this.tokenExchangeUrl, {
+                        body: body,
+                        headers: new Headers(this.headers || {}),
+                        method: 'post'
+                    }), 5000, 10);
+                })
                 .then(OauthAuthorizator._ensureOk)
                 .then(response => response.json())
                 .then(response => {
@@ -323,9 +327,11 @@
                 return Promise.resolve();
             }
 
+            const body = new URLSearchParams();
+            body.append('refresh_token', rt);
             return OauthAuthorizator._retry(() => fetch(this.tokenRefreshUrl, {
-                body: new URLSearchParams({ refresh_token: rt }),
-                headers: this.headers,
+                body: body,
+                headers: new Headers(this.headers || {}),
                 method: 'post'
             }), 5000, 10)
                 .then(OauthAuthorizator._ensureOk)
