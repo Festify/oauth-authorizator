@@ -254,8 +254,7 @@
                     const redirUrl = new URL(this.redirectUrl);
 
                     if (loc.protocol !== redirUrl.protocol ||
-                        loc.host !== redirUrl.host ||
-                        loc.pathname !== redirUrl.pathname) {
+                        loc.host !== redirUrl.host) {
                         console.warn(`Received message from invalid domain ${ev.origin}.`);
                         return;
                     }
