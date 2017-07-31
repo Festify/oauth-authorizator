@@ -3,10 +3,7 @@
   "description": "A Polymer 2.0 Element that performs the OAuth2 authorization code flow",
   "main": "oauth-authorizator.html",
   "dependencies": {
-    "fetch-import": "^1.0.0",
-    "polymer": "Polymer/polymer#^2.0.0",
-    "url": "webcomponents/URL#^0.5.7",
-    "url-search-params": "^0.9.0"
+    "polymer": "Polymer/polymer#^2.0.0"
   },
   "devDependencies": {
     "iron-demo-helpers": "PolymerElements/iron-demo-helpers#^2.0.0",
