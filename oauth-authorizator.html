@@ -221,6 +221,7 @@
                     Array.isArray(this.scopes) ? this.scopes.join(' ') : this.scopes
                 );
                 params.set('state', state);
+                params.set('show_dialog', true);
 
                 authUrl.search = params.toString();
 
