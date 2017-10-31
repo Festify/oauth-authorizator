@@ -288,6 +288,7 @@
                 .then(code => {
                     const body = new URLSearchParams();
                     body.append('code', code);
+                    body.append('callbackUrl', this.redirectUrl);
                     return OauthAuthorizator._retry(() => fetch(this.tokenExchangeUrl, {
                         body: body,
                         headers: new Headers(this.headers || {}),
