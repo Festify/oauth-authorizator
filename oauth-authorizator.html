@@ -234,13 +234,17 @@
                     ));
                 }
 
+                const cancelListeners = () => {
+                    clearInterval(interval);
+                    window.removeEventListener('message', handleFunction);
+                };
+
                 const interval = setInterval(() => {
                     if (!w.closed) {
                         return;
                     }
 
-                    clearInterval(interval);
-                    window.removeEventListener('message', handleFunction);
+                    cancelListeners();
 
                     return rej(new Error(
                         "Authorization window has been closed.",
@@ -254,8 +258,7 @@
                         return;
                     }
 
-                    clearInterval(interval);
-                    window.removeEventListener('message', handleFunction);
+                    cancelListeners();
                     w.close();
 
                     if (!ev.data) {
