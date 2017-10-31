@@ -16,7 +16,17 @@
         connectedCallback() {
             if (!this.hasAttribute('manual')) {
                 this.receive();
+                window.addEventListener("storage", e => this.receiveStorage(e), true);
             }
+        }
+
+        get target() {
+            const attrValue = this.getAttribute('target');
+            return this._target ? this._target : (attrValue ? attrValue : '*')
+        }
+
+        set target(val) {
+            this._target = val;
         }
 
         /**
@@ -24,22 +34,41 @@
          * to the window opener through `window.postMessage`.
          */
         receive() {
-            if (!window.opener) {
-                console.log("Missing window.opener.");
-                return false;
-            }
-
-            const attrValue = this.getAttribute('target');
             const query = new URLSearchParams(document.location.search);
 
             const code = query.get('code');
             const error = query.get('error');
             const state = query.get('state');
 
-            window.opener.postMessage(
-                { code: code, error: error, state: state },
-                this.target ? this.target : (attrValue ? attrValue : '*')
-            );
+            if(!code) {
+                return;
+            }
+
+            const authData = { code, error, state };
+
+            if (window.opener) {
+                window.opener.postMessage(authData, this.target);
+                return false;
+            }
+
+            console.log("Missing window.opener. Going through localStorage");
+            localStorage.setItem('tempOAuthResult', JSON.stringify(authData));
+
+            // Close when in Electron
+            if(window && window.process && window.process.type) {
+                const { remote } = require('electron');
+                const window = remote.getCurrentWindow();
+                window.close();
+            }
+        }
+
+        receiveStorage(e) {
+            if (e.key !== 'tempOAuthResult') {
+                console.debug(`Received wrong storage event key ${e.key}`);
+                return;
+            }
+            const data = JSON.parse(e.newValue);
+            window.parent.postMessage(data, this.target);
         }
     }
 
