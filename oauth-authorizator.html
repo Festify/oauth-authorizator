@@ -211,6 +211,7 @@
                 const state = (Math.random().toString(36) + '00000000000000000').slice(2, 9);
 
                 const authUrl = new URL(this.authorizationUrl);
+                const redirUrl = new URL(this.redirectUrl);
 
                 const params = new URLSearchParams(authUrl.search);
                 params.set('client_id', this.clientId);
@@ -248,11 +249,7 @@
                 }, 100);
 
                 const handleFunction = (/** @type MessageEvent */ev) => {
-                    const loc = new URL(ev.origin);
-                    const redirUrl = new URL(this.redirectUrl);
-
-                    if (loc.protocol !== redirUrl.protocol ||
-                        loc.host !== redirUrl.host) {
+                    if (ev.origin !== redirUrl.origin) {
                         console.warn(`Received message from invalid domain ${ev.origin}.`);
                         return;
                     }
